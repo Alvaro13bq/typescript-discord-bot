@@ -7,7 +7,7 @@
     "start": "ts-node src/Bot.ts"
   },
   "author": "alvarofernandezg2000",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "discord.js": "^14.9.0",
     "dotenv": "^16.0.3"
