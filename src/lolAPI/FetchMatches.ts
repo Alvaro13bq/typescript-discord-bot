@@ -5,13 +5,13 @@ import { WrappedMatch, LastsMatchesResuls } from "../interfaces/LoLMatches";
 const API_LOL = process.env.API_LOL!;
 const rAPI = new RiotAPI(API_LOL);
 
-export const GetLastMatchesEU = async (puuid: string, type: string | undefined, count: number = 10) => {
+export const getLastMatchesEU = async (puuid: string, type: string | undefined, count: number = 10) => {
     const cluster = PlatformId.EUROPE;
-    const matches = await GetLastMatches(puuid, cluster, count, type);
+    const matches = await getLastMatches(puuid, cluster, count, type);
     return matches;
 }
 
-const GetLastMatches = async (puuid: string, cluster: RiotAPITypes.Cluster, count: number, type: string | undefined) => {
+const getLastMatches = async (puuid: string, cluster: RiotAPITypes.Cluster, count: number, type: string | undefined) => {
     const matchesList: WrappedMatch[] = [];
     const [matchType, matchQueue] = type?.split(" ") ?? [undefined, undefined];
     const matches = (await rAPI.matchV5.getIdsbyPuuid({ 
@@ -21,7 +21,7 @@ const GetLastMatches = async (puuid: string, cluster: RiotAPITypes.Cluster, coun
     })).slice(0, count);
     for await (const match of matches) {
         const matchData = await rAPI.matchV5.getMatchById({cluster, matchId: match});
-        const wrappedMatch: WrappedMatch = ParseMatchData(puuid, match, matchData);
+        const wrappedMatch: WrappedMatch = parseMatchData(puuid, match, matchData);
         matchesList.push(wrappedMatch);
     }
     const lastsMatchesResuls: LastsMatchesResuls = {
@@ -32,7 +32,7 @@ const GetLastMatches = async (puuid: string, cluster: RiotAPITypes.Cluster, coun
     return lastsMatchesResuls;
 }
 
-const ParseMatchData = (puuid: string, matchId: string, matchData: RiotAPITypes.MatchV5.MatchDTO) => {
+const parseMatchData = (puuid: string, matchId: string, matchData: RiotAPITypes.MatchV5.MatchDTO) => {
     const focusedParticipant = matchData.info.participants.find((participant) => participant.puuid === puuid)!;
     const matchType = matchData.info.gameMode === "CLASSIC" ? matchData.info.queueId === 420 ? "Solo/Duo" : "Flex" : matchData.info.gameMode;
     const wrappedMatch: WrappedMatch = {
