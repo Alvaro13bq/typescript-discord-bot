@@ -1,34 +1,17 @@
 require("dotenv").config();
 import { RiotAPI, RiotAPITypes, PlatformId } from "@fightmegg/riot-api";
+import { WrappedMatch, LastsMatchesResuls } from "../interfaces/LoLMatches";
 
 const API_LOL = process.env.API_LOL!;
 const rAPI = new RiotAPI(API_LOL);
 
-interface LastsMatchesResuls {
-    matches: WrappedMatch[];
-    winrate: string;
-    averageKDA: string;
-}
-
-interface WrappedMatch {
-    matchId: string;
-    duration: string;
-    gameMode: string;
-    win: boolean;
-    kda: string;
-    champion: string;
-    date: string;
-    focusedParticipantPUUID: string;
-    focusedParticipantName: string;
-}
-
-export const getLastMatchesEU = async (puuid: string, type: string | undefined, count: number = 10) => {
+export const GetLastMatchesEU = async (puuid: string, type: string | undefined, count: number = 10) => {
     const cluster = PlatformId.EUROPE;
-    const matches = await getLastMatches(puuid, cluster, count, type);
+    const matches = await GetLastMatches(puuid, cluster, count, type);
     return matches;
 }
 
-const getLastMatches = async (puuid: string, cluster: RiotAPITypes.Cluster, count: number, type: string | undefined) => {
+const GetLastMatches = async (puuid: string, cluster: RiotAPITypes.Cluster, count: number, type: string | undefined) => {
     const matchesList: WrappedMatch[] = [];
     const [matchType, matchQueue] = type?.split(" ") ?? [undefined, undefined];
     const matches = (await rAPI.matchV5.getIdsbyPuuid({ 
@@ -38,19 +21,7 @@ const getLastMatches = async (puuid: string, cluster: RiotAPITypes.Cluster, coun
     })).slice(0, count);
     for await (const match of matches) {
         const matchData = await rAPI.matchV5.getMatchById({cluster, matchId: match});
-        const focusedParticipant = matchData.info.participants.find((participant) => participant.puuid === puuid)!;
-        const matchType = matchData.info.gameMode === "CLASSIC" ? matchData.info.queueId === 420 ? "Solo/Duo" : "Flex" : matchData.info.gameMode;
-        const wrappedMatch: WrappedMatch = {
-            matchId: match,
-            duration: `${Math.floor(matchData.info.gameDuration / 60)}:${(matchData.info.gameDuration % 60).toFixed(0).padStart(2, "0")}`,
-            gameMode: matchType,
-            win: focusedParticipant.win,
-            kda: `${focusedParticipant.kills}/${focusedParticipant.deaths}/${focusedParticipant.assists}`,
-            champion: focusedParticipant.championName,
-            date: new Date(matchData.info.gameStartTimestamp).toLocaleDateString(),
-            focusedParticipantPUUID: focusedParticipant.puuid,
-            focusedParticipantName: focusedParticipant.summonerName
-        }
+        const wrappedMatch: WrappedMatch = ParseMatchData(puuid, match, matchData);
         matchesList.push(wrappedMatch);
     }
     const lastsMatchesResuls: LastsMatchesResuls = {
@@ -59,4 +30,21 @@ const getLastMatches = async (puuid: string, cluster: RiotAPITypes.Cluster, coun
         averageKDA: `${Math.floor(matchesList.reduce((acc, match) => acc + parseInt(match.kda.split("/")[0]), 0) / matchesList.length)}/${Math.floor(matchesList.reduce((acc, match) => acc + parseInt(match.kda.split("/")[1]), 0) / matchesList.length)}/${Math.floor(matchesList.reduce((acc, match) => acc + parseInt(match.kda.split("/")[2]), 0) / matchesList.length)}`
     }
     return lastsMatchesResuls;
+}
+
+const ParseMatchData = (puuid: string, matchId: string, matchData: RiotAPITypes.MatchV5.MatchDTO) => {
+    const focusedParticipant = matchData.info.participants.find((participant) => participant.puuid === puuid)!;
+    const matchType = matchData.info.gameMode === "CLASSIC" ? matchData.info.queueId === 420 ? "Solo/Duo" : "Flex" : matchData.info.gameMode;
+    const wrappedMatch: WrappedMatch = {
+        matchId,
+        duration: `${Math.floor(matchData.info.gameDuration / 60)}:${(matchData.info.gameDuration % 60).toFixed(0).padStart(2, "0")}`,
+        gameMode: matchType,
+        win: focusedParticipant.win,
+        kda: `${focusedParticipant.kills}/${focusedParticipant.deaths}/${focusedParticipant.assists}`,
+        champion: focusedParticipant.championName,
+        date: new Date(matchData.info.gameStartTimestamp).toLocaleDateString(),
+        focusedParticipantPUUID: focusedParticipant.puuid,
+        focusedParticipantName: focusedParticipant.summonerName
+    }
+    return wrappedMatch;
 }

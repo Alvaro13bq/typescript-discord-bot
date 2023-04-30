@@ -1,7 +1,7 @@
 import { CommandInteraction, Client, ApplicationCommandType, ApplicationCommandOptionType, Message } from "discord.js";
 import { Command } from "../Command";
-import { getPlayerInfo, getPlayerIcon } from "../lolAPI/FetchPlayer";
-import { getLastMatchesEU } from "../lolAPI/FetchMatches";
+import { GetPlayerInfo, GetPlayerIcon } from "../lolAPI/FetchPlayer";
+import { GetLastMatchesEU } from "../lolAPI/FetchMatches";
 import { PlatformId } from "@fightmegg/riot-api";
 
 
@@ -55,15 +55,15 @@ export const PlayerInfo: Command = {
         const name = interaction.options.get("player", true).value as string;
         const region = interaction.options.get("region", true).value as string;
         const gamemode = interaction.options.get("gamemode", false)?.value as string | undefined;
-        const summoner = await getPlayerInfo(region, name);
+        const summoner = await GetPlayerInfo(region, name);
         if (!summoner) {
             await interaction.followUp(`Player "**${name}**" not found`);
             return;
         }
         
-        const iconURL = await getPlayerIcon(summoner.profileIconId);
+        const iconURL = await GetPlayerIcon(summoner.profileIconId);
 
-        const matches = await getLastMatchesEU(summoner.puuid, gamemode);
+        const matches = await GetLastMatchesEU(summoner.puuid, gamemode);
 
         const message = {
             embeds: [
