@@ -1,6 +1,7 @@
 require("dotenv").config();
 import { Client } from "discord.js";
 import ready from "./listeners/ready";
+import interactionCreate from "./listeners/interactionCreate";
 
 const token = process.env.TOKEN;
 
@@ -11,5 +12,6 @@ const client = new Client({
 });
 
 ready(client);
+interactionCreate(client);
 
 client.login(token);
